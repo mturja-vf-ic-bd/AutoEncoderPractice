@@ -1,0 +1,45 @@
+# load json and create model
+from keras.datasets import mnist
+from keras.models import model_from_json
+from matplotlib import pyplot as plt
+import numpy as np
+
+json_file = open('model.json', 'r')
+loaded_model_json = json_file.read()
+json_file.close()
+loaded_model = model_from_json(loaded_model_json)
+# load weights into new model
+loaded_model.load_weights("model.h5")
+print("Loaded model from disk")
+
+
+(_, _), (X_test, _) = mnist.load_data() # fetch MNIST data
+#X_test = np.reshape(X_test, (len(X_test), 28, 28, 1))
+noise_factor = 0.5
+X_test_noisy = X_test + noise_factor * np.random.normal(loc=0.0, scale=1.0, size=X_test.shape)
+X_test_noisy = np.clip(X_test_noisy, 0., 1.)
+X_test_noisy = np.expand_dims(X_test_noisy, 3)
+# evaluate loaded model on test data
+loaded_model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+#score = loaded_model.evaluate(X_test, X_test, verbose=1)
+#print("%s: %.2f%%" % (loaded_model.metrics_names[1], score[1]*100))
+
+decoded_imgs = loaded_model.predict(X_test_noisy)
+
+n = 20
+plt.figure(figsize=(20, 4))
+for i in range(n):
+    # display original
+    ax = plt.subplot(2, n, i + 1)
+    plt.imshow(X_test_noisy[i].reshape(28, 28))
+    plt.gray()
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+
+    # display reconstruction
+    ax = plt.subplot(2, n, i + 1 + n)
+    plt.imshow(decoded_imgs[i].reshape(28, 28))
+    plt.gray()
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+plt.show()
